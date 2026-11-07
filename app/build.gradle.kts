@@ -40,7 +40,9 @@ android {
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
-                storeFile = file(releaseStoreFilePath!!)
+                // Resolve relative to the project root (an absolute path is
+                // kept as-is), so storeFile may be given either way.
+                storeFile = rootProject.file(releaseStoreFilePath!!)
                 storePassword = signingValue("storePassword", "RELEASE_STORE_PASSWORD")
                 keyAlias = signingValue("keyAlias", "RELEASE_KEY_ALIAS")
                 keyPassword = signingValue("keyPassword", "RELEASE_KEY_PASSWORD")
