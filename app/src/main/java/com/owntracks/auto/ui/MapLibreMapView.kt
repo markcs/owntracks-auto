@@ -226,12 +226,18 @@ private fun moveCamera(
     track: List<TrackPoint>,
 ) {
     val selected = devices.find { it.deviceId == selectedDeviceId }
-    // Deliberately excludes the point count and device positions, so a refresh that
-    // adds points or moves markers does not move the camera.
+    // For a selected device or track the key deliberately excludes positions and the
+    // point count, so a refresh that adds points or nudges the marker does not yank the
+    // camera away from where the user is looking. The "all devices" overview is different:
+    // there the whole purpose is to keep every device in view, so the key includes each
+    // device's position (rounded to ignore GPS jitter) and the camera re-fits when a
+    // device actually moves during a refresh.
     val key: Any? = when {
         selected != null && track.isNotEmpty() -> Triple("track", selectedDeviceId, track.first().time)
         selected?.lastEndpoint != null -> "device" to selectedDeviceId
-        devices.isNotEmpty() -> "all" to devices.map { it.deviceId }.toSet()
+        devices.isNotEmpty() -> "all" to devices.map { d ->
+            d.deviceId to d.lastEndpoint?.let { roundedCell(it.latitude, it.longitude) }
+        }.toSet()
         else -> null
     }
     if (key == null || key == holder.cameraKey) return
@@ -245,6 +251,13 @@ private fun moveCamera(
     }
     fitCamera(map, targets)
 }
+
+/**
+ * Quantise a position to a grid so negligible GPS jitter does not re-trigger the
+ * camera. 1e-4 degrees is roughly 11 m, below which a re-fit is not worth the jump.
+ */
+private fun roundedCell(lat: Double, lon: Double): Pair<Long, Long> =
+    Math.round(lat / 1e-4) to Math.round(lon / 1e-4)
 
 private fun fitCamera(map: MapLibreMap, targets: List<LatLng>) {
     if (targets.isEmpty()) return
