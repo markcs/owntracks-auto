@@ -103,8 +103,10 @@ class DeviceMapScreen(carContext: CarContext, private val device: Device) : Scre
     @SuppressLint("MissingPermission")
     private fun distanceFromHere(lat: Double, lon: Double): Distance? {
         val lm = carContext.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+        // Prefer the GPS fix; with only approximate location granted, fall back to network.
         val here = try {
             lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
         } catch (e: SecurityException) {
             null
         } ?: return null
