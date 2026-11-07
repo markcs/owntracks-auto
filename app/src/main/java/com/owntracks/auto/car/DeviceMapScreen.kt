@@ -1,12 +1,20 @@
 package com.owntracks.auto.car
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.location.Location
+import android.location.LocationManager
+import android.text.SpannableString
+import android.text.Spanned
 import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
 import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarLocation
+import androidx.car.app.model.Distance
+import androidx.car.app.model.DistanceSpan
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.Metadata
 import androidx.car.app.model.Place
@@ -39,14 +47,28 @@ class DeviceMapScreen(carContext: CarContext, private val device: Device) : Scre
                 )
                 .build()
 
+            // Non-browsable rows in a PlaceListMapTemplate must carry a distance
+            // span (Car App Library rule). Use the distance from the car's last
+            // known position when available; otherwise make the row browsable,
+            // which is exempt from the rule.
+            val address = endpoint.address ?: device.subtitle.ifBlank { "Last known position" }
+            val distance = distanceFromHere(endpoint.latitude, endpoint.longitude)
+
             // Rows allow two lines of secondary text: address, then recency.
             val rowBuilder = Row.Builder()
                 .setTitle(device.label)
-                .addText(endpoint.address ?: device.subtitle.ifBlank { "Last known position" })
                 .setMetadata(Metadata.Builder().setPlace(place).build())
+            if (distance != null) {
+                rowBuilder.addText(
+                    SpannableString(address).apply {
+                        setSpan(DistanceSpan.create(distance), 0, length, Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+                    },
+                )
+            } else {
+                rowBuilder.addText(address).setBrowsable(true)
+            }
             TimeLabels.endpointComment(endpoint).takeIf { it.isNotBlank() }?.let { rowBuilder.addText(it) }
-            val row = rowBuilder.build()
-            listBuilder.addItem(row)
+            listBuilder.addItem(rowBuilder.build())
         }
 
         val builder = PlaceListMapTemplate.Builder()
@@ -68,6 +90,23 @@ class DeviceMapScreen(carContext: CarContext, private val device: Device) : Scre
         }
 
         return builder.build()
+    }
+
+    /**
+     * Straight-line distance from the car's last known GPS fix to [lat]/[lon],
+     * or null when no fix is available or location permission is not granted.
+     */
+    @SuppressLint("MissingPermission")
+    private fun distanceFromHere(lat: Double, lon: Double): Distance? {
+        val lm = carContext.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+        val here = try {
+            lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+        } catch (e: SecurityException) {
+            null
+        } ?: return null
+        val results = FloatArray(1)
+        Location.distanceBetween(here.latitude, here.longitude, lat, lon, results)
+        return Distance.create(results[0].toDouble(), Distance.UNIT_METERS)
     }
 
     /** Hand the destination to the car's active navigation app. */
