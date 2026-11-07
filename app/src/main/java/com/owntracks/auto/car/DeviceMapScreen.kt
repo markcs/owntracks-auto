@@ -65,7 +65,11 @@ class DeviceMapScreen(carContext: CarContext, private val device: Device) : Scre
                     },
                 )
             } else {
-                rowBuilder.addText(address).setBrowsable(true)
+                // A browsable row must have a click handler; tapping it navigates,
+                // the same as the Navigate button.
+                rowBuilder.addText(address)
+                    .setBrowsable(true)
+                    .setOnClickListener { navigateTo(endpoint.latitude, endpoint.longitude) }
             }
             TimeLabels.endpointComment(endpoint).takeIf { it.isNotBlank() }?.let { rowBuilder.addText(it) }
             listBuilder.addItem(rowBuilder.build())
