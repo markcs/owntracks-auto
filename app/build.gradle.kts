@@ -1,8 +1,29 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
+
+// Release signing credentials are read, in order of precedence, from:
+//   1. keystore.properties in the project root (gitignored)
+//   2. environment variables (useful for CI)
+// If none are configured, the release build falls back to the debug key so the
+// project still builds for anyone without the release keystore.
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) {
+        FileInputStream(keystorePropsFile).use { load(it) }
+    }
+}
+
+fun signingValue(propKey: String, envKey: String): String? =
+    (keystoreProps.getProperty(propKey) ?: System.getenv(envKey))?.takeIf { it.isNotBlank() }
+
+val releaseStoreFilePath = signingValue("storeFile", "RELEASE_STORE_FILE")
+val hasReleaseSigning = releaseStoreFilePath != null
 
 android {
     namespace = "com.owntracks.auto"
@@ -16,12 +37,28 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFilePath!!)
+                storePassword = signingValue("storePassword", "RELEASE_STORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "RELEASE_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Sideload-only: sign release with the local debug key. Android Auto
-            // rejects debuggable sideloaded template apps, so use the release build.
-            signingConfig = signingConfigs.getByName("debug")
+            // Use the release keystore when configured (see keystore.properties),
+            // otherwise fall back to the debug key. Android Auto rejects debuggable
+            // sideloaded template apps, so the release build is signed either way.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
