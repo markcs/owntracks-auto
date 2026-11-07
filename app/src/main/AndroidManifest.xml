@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Required by the Car App Library to use map templates (PlaceListMapTemplate). -->
+    <uses-permission android:name="androidx.car.app.MAP_TEMPLATES" />
 
     <!-- Declares the app is usable in cars but does not require automotive hardware. -->
     <uses-feature
