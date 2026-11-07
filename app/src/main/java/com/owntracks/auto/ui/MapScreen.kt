@@ -136,7 +136,16 @@ fun MapScreen(
                             loading = state.loading,
                             error = state.error,
                             selectedId = state.selectedDeviceId,
-                            onSelect = { vm.selectDevice(it.deviceId) },
+                            // Tapping the already-selected device deselects it, returning
+                            // to the overview of all devices.
+                            onSelect = {
+                                if (it.deviceId == state.selectedDeviceId) {
+                                    vm.selectDevice(null)
+                                } else {
+                                    vm.selectDevice(it.deviceId)
+                                }
+                            },
+                            onShowAll = { vm.selectDevice(null) },
                             onNavigate = { device ->
                                 val ep = device.lastEndpoint
                                 if (ep == null) {
@@ -284,15 +293,26 @@ private fun DeviceList(
     error: String?,
     selectedId: Int?,
     onSelect: (Device) -> Unit,
+    onShowAll: () -> Unit,
     onNavigate: (Device) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.padding(horizontal = 8.dp)) {
-        Text(
-            "Devices",
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 4.dp),
-        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Devices",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 4.dp),
+            )
+            // Only useful when a device is selected; deselects to show every device.
+            if (selectedId != null) {
+                TextButton(onClick = onShowAll) { Text("Show all") }
+            }
+        }
         when {
             error != null -> Text("Error: $error")
             loading && devices.isEmpty() -> Text("Loading…")

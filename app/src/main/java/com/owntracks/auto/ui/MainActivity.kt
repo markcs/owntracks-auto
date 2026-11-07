@@ -2,6 +2,7 @@ package com.owntracks.auto.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -17,6 +18,10 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Surface {
                     var showSettings by remember { mutableStateOf(false) }
+                    // On the settings screen, back should return to the map rather than
+                    // leave the app. Only enabled there, so from the map back behaves
+                    // normally (backgrounds the app).
+                    BackHandler(enabled = showSettings) { showSettings = false }
                     if (showSettings) {
                         SettingsScreen(onBack = { showSettings = false })
                     } else {
