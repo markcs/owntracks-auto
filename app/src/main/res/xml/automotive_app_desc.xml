@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Auto scans installed apps for this descriptor (referenced from the
+  com.google.android.gms.car.application meta-data in the manifest) to decide
+  the app is a templated car app. Without it the app will not appear in the
+  Android Auto launcher at all.
+-->
+<automotiveApp>
+    <uses name="template" />
+</automotiveApp>

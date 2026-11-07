@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The owntrack-rs server is reached over plain HTTP on the local network, so
+  cleartext must be permitted. It is scoped to private address ranges rather
+  than enabled globally. Add your server's exact host/IP if it falls outside
+  these ranges.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">192.168.0.0</domain>
+        <domain includeSubdomains="true">10.0.0.0</domain>
+        <!-- Common private hosts; the default below covers arbitrary LAN IPs. -->
+    </domain-config>
+    <!-- Fallback: allow cleartext generally so a user-configured base URL works.
+         Narrow this to specific hosts if you want to forbid cleartext elsewhere. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
